@@ -59,10 +59,12 @@ __abbrev_alias::magic_abbrev_expand() {
 __abbrev_alias::magic_abbrev_expand_and_insert() {
     zle __abbrev_alias::magic_abbrev_expand
     zle self-insert
+    zle reset-prompt
 }
 
 __abbrev_alias::magic_abbrev_expand_and_accept_line() {
     zle __abbrev_alias::magic_abbrev_expand
+    zle reset-prompt
     zle accept-line
 }
 
