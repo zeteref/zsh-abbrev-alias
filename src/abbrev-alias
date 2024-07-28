@@ -34,6 +34,8 @@ __abbrev_alias::recursive_command() {
   echo "${result:1}"
 }
 
+ACCEPT_LINE=0
+export ABBREV_ALIAS_ACCEPT_LINE=6
 __abbrev_alias::magic_abbrev_expand() {
   emulate -L zsh -o extended_glob
   local MATCH
@@ -46,7 +48,8 @@ __abbrev_alias::magic_abbrev_expand() {
   else
     local is_eval=${${(s.\0.)abbr}[3]}
     if [[ "$is_eval" == "1" ]]; then
-      newbuffer=$(eval "echo \"$newbuffer\"")
+      eval "newbuffer=\"$newbuffer\""
+      ACCEPT_LINE=$?
     fi
     local is_recursive=${${(s.\0.)abbr}[4]}
     if [[ "$is_recursive" == "1" ]]; then
@@ -60,6 +63,9 @@ __abbrev_alias::magic_abbrev_expand_and_insert() {
     zle __abbrev_alias::magic_abbrev_expand
     zle self-insert
     zle reset-prompt
+    if [[ "$ACCEPT_LINE" == "$ABBREV_ALIAS_ACCEPT_LINE" ]]; then
+        zle accept-line
+    fi
 }
 
 __abbrev_alias::magic_abbrev_expand_and_accept_line() {
