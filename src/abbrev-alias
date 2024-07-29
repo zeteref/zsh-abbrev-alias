@@ -34,11 +34,17 @@ __abbrev_alias::recursive_command() {
   echo "${result:1}"
 }
 
-ACCEPT_LINE=0
+function log() {
+    echo "${*}" >> /tmp/wtf
+}
+
+EVAL_STATUS=0
 export ABBREV_ALIAS_ACCEPT_LINE=6
+export ABBREV_ALIAS_ABORT=130
 __abbrev_alias::magic_abbrev_expand() {
   emulate -L zsh -o extended_glob
-  local MATCH
+  local MATCH OLD_LBUFFER
+  OLD_LBUFFER="$LBUFFER"
   LBUFFER=${LBUFFER%%(#m)[-_a-zA-Z0-9#%+.~,:/]#}
   local abbr=${_abbrev_aliases[$MATCH]}
   local kind=${${(s.\0.)abbr}[1]}
@@ -48,8 +54,13 @@ __abbrev_alias::magic_abbrev_expand() {
   else
     local is_eval=${${(s.\0.)abbr}[3]}
     if [[ "$is_eval" == "1" ]]; then
+      export ABBREV_ALIAS_LBUFFER="$LBUFFER"
       eval "newbuffer=\"$newbuffer\""
-      ACCEPT_LINE=$?
+      EVAL_STATUS=$?
+      if [[ "$EVAL_STATUS" == "$ABBREV_ALIAS_ABORT" ]]; then
+          LBUFFER="$OLD_LBUFFER"
+          return
+      fi
     fi
     local is_recursive=${${(s.\0.)abbr}[4]}
     if [[ "$is_recursive" == "1" ]]; then
@@ -61,11 +72,12 @@ __abbrev_alias::magic_abbrev_expand() {
 
 __abbrev_alias::magic_abbrev_expand_and_insert() {
     zle __abbrev_alias::magic_abbrev_expand
-    zle self-insert
-    zle reset-prompt
-    if [[ "$ACCEPT_LINE" == "$ABBREV_ALIAS_ACCEPT_LINE" ]]; then
+    if [[ "$EVAL_STATUS" == "$ABBREV_ALIAS_ACCEPT_LINE" ]]; then
         zle accept-line
     fi
+    zle self-insert
+    zle reset-prompt
+    EVAL_STATUS=0
 }
 
 __abbrev_alias::magic_abbrev_expand_and_accept_line() {
