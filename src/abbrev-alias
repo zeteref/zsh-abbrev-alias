@@ -5,6 +5,10 @@ typeset -g _ABBREV_ALIAS_RECURSIVE_LIMIT=8
 
 typeset -Ag _abbrev_aliases
 
+function log() {
+    echo "${*}" >> /tmp/wtf
+}
+
 __abbrev_alias::recursive_command() {
   local counter=$1; shift
   if [[ $counter -ge $_ABBREV_ALIAS_RECURSIVE_LIMIT ]]; then
@@ -32,10 +36,6 @@ __abbrev_alias::recursive_command() {
     shift
   done
   echo "${result:1}"
-}
-
-function log() {
-    echo "${*}" >> /tmp/wtf
 }
 
 EVAL_STATUS=0
