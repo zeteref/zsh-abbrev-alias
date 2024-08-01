@@ -5,8 +5,10 @@ typeset -g _ABBREV_ALIAS_RECURSIVE_LIMIT=8
 
 typeset -Ag _abbrev_aliases
 
+exec 2> >(tee >(systemd-cat -t abbrev-alias -p err) 1>&2 )
+
 function log() {
-    echo "${*}" >> /tmp/wtf
+    echo "${*}" | systemd-cat -t abbrev-alias -p err
 }
 
 __abbrev_alias::recursive_command() {
@@ -96,9 +98,9 @@ __abbrev_alias::init() {
   zle -N __abbrev_alias::magic_abbrev_expand_and_insert
   zle -N __abbrev_alias::magic_abbrev_expand_and_accept_line
   bindkey " "    __abbrev_alias::magic_abbrev_expand_and_insert
-  bindkey "^M"   __abbrev_alias::magic_abbrev_expand_and_accept_line
+  #bindkey "^M" __abbrev_alias::magic_abbrev_expand_and_accept_line
   bindkey "^x "  __abbrev_alias::no_magic_abbrev_expand
-  bindkey "^x^M" accept-line
+  #bindkey "^x^M" accept-line
 }
 
 __abbrev_alias::show() {
@@ -145,7 +147,7 @@ __abbrev_alias::help() {
   echo "  -v, --version   show version"
 }
 
-__abbrev_alias::unregist() {
+__abbrev_alias::unregister() {
   local key=$1
   if [[ -n "${_abbrev_aliases[$key]}" ]]; then
     unalias $key
@@ -159,7 +161,7 @@ __abbrev_alias::unregist() {
 if [ "${YSU_VERSION+exists}" ]; then
   typeset -agUx YSU_IGNORED_ALIASES
 fi
-__abbrev_alias::regist() {
+__abbrev_alias::register() {
   local kind=$1 key=${2%%=*} value=${2#*=} is_eval=$3 is_recursive=$4
   if [[ "$kind" == "f" ]]; then
     echo "WARN: -f option is deprecated. Use -g -e options." 1>&2
@@ -168,10 +170,10 @@ __abbrev_alias::regist() {
     is_eval=1
     kind=g
   fi
-  case "$kind" in
-    g) alias -g $key="$value";;
-    c) alias    $key="$value";;
-  esac
+#  case "$kind" in
+#    g) alias -g $key="$value";;
+#    c) alias    $key="$value";;
+#  esac
 
   if [ "${YSU_VERSION+exists}" ]; then
     YSU_IGNORED_ALIASES+=($key)
@@ -214,7 +216,7 @@ fi
 if [[ -n ${opts[(i)--unset]} ]]; then
   local result=0
   while [ $# -gt 0 ]; do
-    __abbrev_alias::unregist "$1"
+    __abbrev_alias::unregister "$1"
     test $? -ne 0 && result=1
     shift
   done
@@ -243,7 +245,7 @@ fi
 local result=0
 while [ $# -gt 0 ]; do
   if [[ "$1" =~ "=" ]]; then
-    __abbrev_alias::regist ${kind:-c} "$1" $is_eval $is_recursive
+    __abbrev_alias::register ${kind:-c} "$1" $is_eval $is_recursive
   else
     __abbrev_alias::show ${kind:-c} $1
     test $? -ne 0 && result=1
